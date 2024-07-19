@@ -19,7 +19,7 @@
 # misc
 .DS_Store
 *.pem
-credentials.json
+credentials copy.json
 token.json
 
 # debug
