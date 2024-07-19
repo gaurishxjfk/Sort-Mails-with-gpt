@@ -2,13 +2,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // This is the default and can be omitted
-});
+
 
 export async function POST(request: NextRequest, res: NextResponse) {
   const reqBody = await request.json();
   const emailsList = reqBody.emailsList;
+  const storedKey = reqBody.storedKey
+
+  const openai = new OpenAI({
+    apiKey: storedKey, // This is the default and can be omitted
+  });
   try {
     let classifications = [];
     for (const email of emailsList) {

@@ -1,10 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/Button";
+import EmailComponent from "./EmailComponent";
+import ApiKeyModal from "./ApiKeyModal";
 
 const mailCounts: number[] = [5, 10, 15, 20];
 
-interface Email {
+export interface Email {
   id: string;
   snippet: string;
   senderName: string;
@@ -17,7 +19,7 @@ interface Classifications {
   category?: string[];
 }
 
-function getColorClass(work: string) {
+export function getColorClass(work: string) {
   if (work.toLowerCase().includes("promotions")) {
     return "bg-green-500";
   } else if (work.toLowerCase().includes("social")) {
@@ -35,15 +37,19 @@ function getColorClass(work: string) {
 
 const EmailList: React.FC = () => {
   const [emails, setEmails] = useState<Email[]>([]);
+  const [selecedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [mailCount, setMailCount] = useState<number>(5);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingClassifications, setLoadingClassifications] =
     useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [classifications, setClassifications] = useState<Classifications[]>([]);
+  const [toggleApiKey, setToggleApiKey] = useState(false);
+  const [storedKey, setStoredKey] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setClassifications([]);
     const fetchEmails = async () => {
       try {
         const response = await fetch(`/api/gmail/mails?mailCount=${mailCount}`);
@@ -79,7 +85,7 @@ const EmailList: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ emailsList }),
+        body: JSON.stringify({ emailsList, storedKey }),
       });
 
       const { classifications } = await response.json();
@@ -90,6 +96,28 @@ const EmailList: React.FC = () => {
       alert("Failed to classify emails");
     }
   };
+
+  function fetchAPIKey() {
+    setLoadingClassifications(true);
+    const key = localStorage.getItem("openaiApiKey");
+    if (key) {
+      setStoredKey(key);
+      setLoadingClassifications(false);
+    } else {
+      setToggleApiKey(true);
+    }
+  }
+
+  useEffect(() => {
+    fetchAPIKey();
+  }, []);
+
+  useEffect(() => {
+    if (storedKey && !toggleApiKey) {
+      handleClassify();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toggleApiKey, storedKey]);
 
   if (loading)
     return (
@@ -113,14 +141,20 @@ const EmailList: React.FC = () => {
     }
     return [];
   }
+  console.log(classifications.length > 0, "yess");
 
-  console.log(classifications);
   return (
-    <div className="bg-white">
-      <div className="flex justify-around items-center py-4">
+    <div className="bg-white pb-4 relative">
+      {toggleApiKey && (
+        <ApiKeyModal
+          setStoredKey={setStoredKey}
+          setToggleApiKey={setToggleApiKey}
+        />
+      )}
+      <div className="flex justify-around items-center py-4 ">
         <select
           value={mailCount}
-          className="p-[5px] rounded-lg border-2 border-blue-500 "
+          className="p-[5px] rounded-lg border shadow-[3px_3px_0px_0px_rgba(125,160,225)] border-[#7a7a7a]"
           onChange={(e) => setMailCount(parseInt(e.target.value, 10))}
         >
           {mailCounts.map((c) => (
@@ -132,22 +166,36 @@ const EmailList: React.FC = () => {
         {emails.length > 0 && (
           <Button
             text={`${loadingClassifications ? "loading..." : "Classify"}`}
-            btnHandler={handleClassify}
-            className={"bg-blue-500 !mx-0"}
+            btnHandler={storedKey ? handleClassify : fetchAPIKey}
+            className={
+              "bg-white outline-none !text-[#3a3a3a] border border-[#7a7a7a] !mx-0 shadow-[3px_3px_0px_0px_rgba(125,160,225)]"
+            }
           />
         )}
       </div>
 
-      <ul className="flex flex-col gap-4 mx-2 md:mx-12 my-6">
+      <ul className="flex flex-col gap-4 mx-2 md:mx-12 my-6 relative">
+        {selecedEmail && (
+          <EmailComponent
+            email={selecedEmail}
+            setSelectedEmail={setSelectedEmail}
+            category={
+              classifications.length > 0
+                ? getCategory(selecedEmail.id)[0]
+                : null
+            }
+          />
+        )}
         {emails.map((email) => (
           <li
             key={email.id}
-            className="relative border border-[#7a7a7a] rounded-md p-3 bg-white  bg-clip-padding backdrop-filter
+            onClick={() => setSelectedEmail(email)}
+            className="relative border cursor-pointer border-[#7a7a7a] rounded-md p-3 bg-white  bg-clip-padding backdrop-filter
                    backdrop-blur-sm bg-opacity-50 shadow-[5px_5px_0px_0px_rgba(125,160,225)] text-[14px] md:text-md"
           >
             {classifications.length > 0 && (
               <span
-                className={`bg-red-500 px-1 py-0.5 text-white absolute right-5 rounded-lg ${getColorClass(
+                className={`px-1 py-0.5 text-white text-[12px] absolute right-5 rounded-lg ${getColorClass(
                   loadingClassifications
                     ? "Loading..."
                     : getCategory(email.id)[0].toString().toLowerCase()

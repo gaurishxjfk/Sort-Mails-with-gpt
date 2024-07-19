@@ -9,7 +9,7 @@ export default function Home() {
   const { data: session } = useSession();
   return (
     <main className="flex flex-col w-[95%] md:w-[85%] lg:w-[65%]  mx-auto h-screen ">
-      <div className="rounded-md my-auto shadow-md">
+      <div className="rounded-md my-auto shadow-md ">
         {session ? (
           <>
             <div className="flex justify-around items-center py-4 bg-gray-100 rounded-t-lg mt-4 border border-t-0 border-x-0 border-b-2">
@@ -29,7 +29,7 @@ export default function Home() {
                 </div>
               </div>
               <Button
-                text={"Sign out ⛔"}
+                text={"Sign out"}
                 btnHandler={signOut}
                 className="bg-white text-gray-700 border p-2 !mx-0"
               />
